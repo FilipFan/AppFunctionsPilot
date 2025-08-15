@@ -10,6 +10,16 @@ This repository contains two sample applications that illustrate a function-call
 
 ## Installation
 
+### Prerequisites
+
+Ensure the following flag is enabled on your device or emulator:
+
+```
+adb shell aflags list | grep "enable_app_functions_schema_parser"
+```
+
+If this flag is not set to enabled, you will need to modify the `USE_CONTENT_PROVIDER` variable to true in the following file: `agent/src/main/java/dev/filipfan/appfunctionspilot/agent/MainViewModel.kt`.
+
 ### Tool App
 
 You can install the tool app directly using ADB:

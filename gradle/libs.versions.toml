@@ -10,9 +10,7 @@ lifecycleRuntimeCompose = "2.8.3"
 spotless = "7.1.0"
 kotlinxCoroutinesGuava = "1.10.2"
 gson = "2.10.1"
-appfunctions = "1.0.0-alpha02"
-appfunctionsService = "1.0.0-alpha02"
-appfunctionsCompiler = "1.0.0-alpha02"
+appfunctions = "1.0.0-alpha03"
 ksp = "2.1.21-2.0.1"
 
 [libraries]
@@ -32,8 +30,8 @@ gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 # Dependencies for appfunctions.
 # See https://developer.android.com/jetpack/androidx/releases/appfunctions.
 appfunctions = { group = "androidx.appfunctions", name = "appfunctions", version.ref = "appfunctions" }
-appfunctions-service = { group = "androidx.appfunctions", name = "appfunctions-service", version.ref = "appfunctionsService" }
-appfunctions-compiler = { group = "androidx.appfunctions", name = "appfunctions-compiler", version.ref = "appfunctionsCompiler" }
+appfunctions-service = { group = "androidx.appfunctions", name = "appfunctions-service", version.ref = "appfunctions" }
+appfunctions-compiler = { group = "androidx.appfunctions", name = "appfunctions-compiler", version.ref = "appfunctions" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

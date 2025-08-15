@@ -1,13 +1,19 @@
 package dev.filipfan.appfunctionspilot.agent
 
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionBooleanTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionDoubleTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionFloatTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionIntTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionLongTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionParameterMetadata
-import androidx.appfunctions.metadata.AppFunctionPrimitiveTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionStringTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionUnitTypeMetadata
 
 fun List<AppFunctionMetadata>.toFunctionDeclarations(): List<FunctionDeclaration> = this.map {
     it.toFunctionDeclaration()
@@ -16,7 +22,7 @@ fun List<AppFunctionMetadata>.toFunctionDeclarations(): List<FunctionDeclaration
 private fun AppFunctionMetadata.toFunctionDeclaration(): FunctionDeclaration = FunctionDeclaration(
     name = this.id,
     shortName = this.schema?.name ?: "Unknown",
-    description = "", // Not supported yet.
+    description = this.description,
     parameters = this.toParametersSchema(),
     response = this.response.valueType.toSchema(this.components),
 )
@@ -24,18 +30,7 @@ private fun AppFunctionMetadata.toFunctionDeclaration(): FunctionDeclaration = F
 private fun AppFunctionMetadata.toParametersSchema(): Schema? {
     if (parameters.isEmpty()) return null
 
-    // Wrap primitive type calls with a single parameter into object type.
-    parameters.singleOrNull()
-        ?.takeIf { it.dataType is AppFunctionPrimitiveTypeMetadata }
-        ?.let { param ->
-            val primitiveSchema = (param.dataType as AppFunctionPrimitiveTypeMetadata).toSchema()
-            return Schema(
-                type = DataType.OBJECT,
-                properties = mapOf(param.name to primitiveSchema),
-                required = if (param.isRequired) listOf(param.name) else emptyList(),
-            )
-        }
-
+    // Parameters are wrapped into a single, top-level object.
     return createObjectSchema(parameters, components)
 }
 
@@ -44,9 +39,10 @@ private fun createObjectSchema(
     components: AppFunctionComponentsMetadata,
 ): Schema = Schema(
     type = DataType.OBJECT,
-    description = "", // Not supported yet.
     properties = params.associate { param ->
-        param.name to param.dataType.toSchema(components)
+        val baseSchema = param.dataType.toSchema(components)
+        // An argument, use the description of parameter level.
+        param.name to baseSchema.copy(description = param.description)
     },
     required = params.filter { it.isRequired }.map { it.name },
 )
@@ -54,17 +50,53 @@ private fun createObjectSchema(
 private fun AppFunctionDataTypeMetadata.toSchema(
     components: AppFunctionComponentsMetadata,
 ): Schema = when (this) {
-    is AppFunctionPrimitiveTypeMetadata -> this.toSchema()
+    // Primitives
+    is AppFunctionIntTypeMetadata -> createPrimitiveSchema(
+        DataType.INT,
+        description,
+        isNullable,
+        enumValues?.toList(),
+    )
+
+    is AppFunctionLongTypeMetadata -> createPrimitiveSchema(DataType.LONG, description, isNullable)
+    is AppFunctionFloatTypeMetadata -> createPrimitiveSchema(
+        DataType.FLOAT,
+        description,
+        isNullable,
+    )
+
+    is AppFunctionDoubleTypeMetadata -> createPrimitiveSchema(
+        DataType.DOUBLE,
+        description,
+        isNullable,
+    )
+
+    is AppFunctionBooleanTypeMetadata -> createPrimitiveSchema(
+        DataType.BOOLEAN,
+        description,
+        isNullable,
+    )
+
+    is AppFunctionStringTypeMetadata -> createPrimitiveSchema(
+        DataType.STRING,
+        description,
+        isNullable,
+        enumValues?.toList(),
+    )
+
+    is AppFunctionUnitTypeMetadata -> createPrimitiveSchema(DataType.UNIT, description, isNullable)
+
+    // Complex Types
     is AppFunctionArrayTypeMetadata -> Schema(
         type = DataType.ARRAY,
-        description = "", // Not supported yet.
+        description = this.description,
         nullable = this.isNullable,
         items = this.itemType.toSchema(components),
     )
 
     is AppFunctionObjectTypeMetadata -> Schema(
         type = DataType.OBJECT,
-        description = "", // Not supported yet.
+        description = this.description,
         nullable = this.isNullable,
         properties = this.properties.mapValues { (_, value) -> value.toSchema(components) },
         required = this.required,
@@ -79,19 +111,14 @@ private fun AppFunctionDataTypeMetadata.toSchema(
     else -> throw IllegalStateException("Unexpected data type: $this")
 }
 
-private fun AppFunctionPrimitiveTypeMetadata.toSchema(): Schema = Schema(
-    type = this.toSchemaDataType(),
-    description = "", // Not supported yet.
-    nullable = this.isNullable,
+private fun createPrimitiveSchema(
+    type: DataType,
+    description: String,
+    nullable: Boolean,
+    enumValues: List<Any>? = null,
+) = Schema(
+    type = type,
+    description = description,
+    nullable = nullable,
+    enum = enumValues ?: emptyList(),
 )
-
-private fun AppFunctionPrimitiveTypeMetadata.toSchemaDataType(): DataType = when (type) {
-    AppFunctionPrimitiveTypeMetadata.TYPE_BOOLEAN -> DataType.BOOLEAN
-    AppFunctionPrimitiveTypeMetadata.TYPE_LONG -> DataType.LONG
-    AppFunctionPrimitiveTypeMetadata.TYPE_DOUBLE -> DataType.DOUBLE
-    AppFunctionPrimitiveTypeMetadata.TYPE_FLOAT -> DataType.FLOAT
-    AppFunctionPrimitiveTypeMetadata.TYPE_INT -> DataType.INT
-    AppFunctionPrimitiveTypeMetadata.TYPE_STRING -> DataType.STRING
-    AppFunctionPrimitiveTypeMetadata.TYPE_UNIT -> DataType.UNIT
-    else -> throw IllegalStateException("Unexpected primitive data type: $type")
-}

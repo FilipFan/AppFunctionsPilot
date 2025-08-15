@@ -9,7 +9,7 @@ import android.util.Log
 import androidx.appfunctions.AppFunctionManagerCompat
 import androidx.appfunctions.AppFunctionSearchSpec
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
-import androidx.appfunctions.metadata.AppFunctionMetadata
+import androidx.appfunctions.metadata.AppFunctionPackageMetadata
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -21,12 +21,14 @@ import com.google.gson.JsonParseException
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.lang.reflect.Type
 
 class MainViewModel(
@@ -35,7 +37,7 @@ class MainViewModel(
     companion object {
         private const val TAG = "MainViewModel"
         private const val TARGET_PACKAGE = "dev.filipfan.appfunctionspilot.tool"
-        private const val USE_CONTENT_PROVIDER = true
+        private const val USE_CONTENT_PROVIDER = false
         private const val AUTHORITY = "dev.filipfan.appfunctionspilot.tool.provider"
         private val CONTENT_URI: Uri = "content://$AUTHORITY".toUri()
         private const val METHOD_GET_METADATA = "get_metadata"
@@ -91,14 +93,22 @@ class MainViewModel(
     }
 
     private fun startObservingWithAppFunctionManager() {
-        val searchFunctionSpec =
-            AppFunctionSearchSpec(packageNames = setOf(TARGET_PACKAGE))
+        val searchSpec = AppFunctionSearchSpec(packageNames = setOf(TARGET_PACKAGE))
         appFunctionManagerCompat
-            .observeAppFunctions(searchFunctionSpec)
-            .onEach { metadataList ->
-                Log.i(TAG, "Received functions: ${metadataList.size}")
-                _functionDeclarations.value = metadataList.toFunctionDeclarations()
-            }.launchIn(viewModelScope)
+            .observeAppFunctions(searchSpec)
+            .onEach { packageList ->
+                packageList.firstOrNull()?.let { metadata ->
+                    Log.i(
+                        TAG,
+                        "Received ${metadata.appFunctions.size} functions from $TARGET_PACKAGE",
+                    )
+                    processPackageMetadata(metadata)
+                } ?: run {
+                    Log.w(TAG, "Unable to find functions for the target package '$TARGET_PACKAGE'")
+                    _functionDeclarations.value = emptyList()
+                }
+            }
+            .launchIn(viewModelScope)
     }
 
     private fun getTestArgumentsForFunction(shortName: String): Map<String, Any?> = when (shortName) {
@@ -127,6 +137,7 @@ class MainViewModel(
 
     fun executeAppFunction(function: FunctionDeclaration) {
         // Test arguments for demonstration.
+        Log.i(TAG, "Function invoked: ${function.toJsonString()}")
         val arguments = getTestArgumentsForFunction(function.shortName)
         viewModelScope.launch {
             val result =
@@ -152,21 +163,49 @@ class MainViewModel(
 
     private fun fetchMetadata() {
         try {
-            val bundle = contentResolver.call(AUTHORITY, METHOD_GET_METADATA, null, null)
-            val metadataJson = bundle?.getString(KEY_METADATA_JSON)
+            val metadataJson = contentResolver.call(AUTHORITY, METHOD_GET_METADATA, null, null)
+                ?.getString(KEY_METADATA_JSON)
 
-            if (metadataJson.isNullOrEmpty()) {
+            if (metadataJson.isNullOrBlank()) {
                 Log.w(TAG, "Metadata JSON is null or empty.")
+                _functionDeclarations.value = emptyList()
                 return
             }
 
-            val type = object : TypeToken<List<AppFunctionMetadata>>() {}.type
-            val metadataList: List<AppFunctionMetadata> = gson.fromJson(metadataJson, type)
+            val type = object : TypeToken<List<AppFunctionPackageMetadata>>() {}.type
+            val packageMetadataList: List<AppFunctionPackageMetadata> =
+                gson.fromJson(metadataJson, type)
 
-            Log.i(TAG, "Successfully fetched ${metadataList.size} metadata items.")
-            _functionDeclarations.value = metadataList.toFunctionDeclarations()
+            packageMetadataList.firstOrNull()?.let { metadata ->
+                Log.i(TAG, "Successfully fetched ${metadata.appFunctions.size} metadata items.")
+                processPackageMetadata(metadata)
+            } ?: run {
+                Log.w(TAG, "Unable to find functions via the content provider.")
+                _functionDeclarations.value = emptyList()
+            }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to call ToolProvider", e)
+            _functionDeclarations.value = emptyList()
+        }
+    }
+
+    private fun processPackageMetadata(metadata: AppFunctionPackageMetadata) {
+        _functionDeclarations.value = metadata.appFunctions.toFunctionDeclarations()
+
+        viewModelScope.launch {
+            val appMetadata = withContext(Dispatchers.IO) {
+                metadata.resolveAppFunctionAppMetadata(getApplication())
+            }
+
+            val fullDescription = listOfNotNull(
+                appMetadata?.description,
+                appMetadata?.displayDescription,
+            ).joinToString(separator = "\n").trim()
+
+            if (fullDescription.isNotBlank()) {
+                // Show the tool app description at first.
+                _functionResponse.value = fullDescription
+            }
         }
     }
 }
