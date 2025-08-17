@@ -11,10 +11,9 @@ private const val TAG = "SampleFunctions"
 
 class VoidFunctionImpl : VoidFunction {
     /**
-     * A sample function that takes no parameters and returns no value. It is used to demonstrate a simple
-     * function invocation.
+     * A sample function that takes no parameters and returns no value. It is used to demonstrate a simple function invocation.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun voidFunction(appFunctionContext: AppFunctionContext) {
         Log.i(TAG, "voidFunction")
     }
@@ -27,7 +26,7 @@ class DoThrowImpl : DoThrow {
      *
      * @throws AppFunctionInvalidArgumentException whenever this function is called.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun doThrow(appFunctionContext: AppFunctionContext) {
         Log.i(TAG, "doThrow")
         throw AppFunctionInvalidArgumentException("invalid")
@@ -38,7 +37,7 @@ class DisabledFunctionImpl : DisabledFunction {
     /**
      * A sample function that is disabled. This function will not be invokable by the host.
      */
-    @AppFunction(isEnabled = false)
+    @AppFunction(isEnabled = false, isDescribedByKdoc = true)
     override fun disabledFunction(appFunctionContext: AppFunctionContext) {
         Log.i(TAG, "disabledFunction")
     }
@@ -52,7 +51,7 @@ class FunctionNullableImpl : FunctionNullable {
      * @param s The nullable string to be processed.
      * @return "input was null" if the input string is null, otherwise returns null.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun functionNullable(appFunctionContext: AppFunctionContext, s: String?): String? {
         Log.i(TAG, "functionNullable")
         return if (s == null) "input was null" else null
@@ -67,7 +66,7 @@ class ArgumentOptionalValuesImpl : ArgumentOptionalValues {
      * @param v An enum value of [ArgumentOptionalValues.OptionalValues].
      * @return The received enum value.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun argumentOptionalValues(
         appFunctionContext: AppFunctionContext,
         v: ArgumentOptionalValues.OptionalValues,
@@ -85,7 +84,7 @@ class AddImpl : Add {
      * @param num2 The second number.
      * @return The sum of num1 and num2.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun add(appFunctionContext: AppFunctionContext, num1: Long, num2: Long): Long {
         Log.i(TAG, "add")
         return num1 + num2
@@ -100,7 +99,7 @@ class GetProductDetailsImpl : GetProductDetails {
      * @return A JSON string containing the product details if found, otherwise a JSON string with an
      * error message.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun getProductDetails(
         appFunctionContext: AppFunctionContext,
         productId: String,
@@ -143,7 +142,7 @@ class GetLocalDateImpl : GetLocalDate {
      *
      * @return A [GetLocalDate.DateTime] object representing the current date and time.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun getLocalDate(appFunctionContext: AppFunctionContext): GetLocalDate.DateTime {
         Log.i(TAG, "getLocalDate")
         return GetLocalDate.DateTime(localDateTime = LocalDateTime.now())
@@ -159,7 +158,7 @@ class GetWeatherImpl : GetWeather {
      * @throws AppFunctionInvalidArgumentException if the provided unit is not 'celsius' or
      * 'fahrenheit'.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun getWeather(
         appFunctionContext: AppFunctionContext,
         param: GetWeather.QueryWeatherParams,
@@ -197,13 +196,12 @@ class FactoryCreatedFuncAImpl(msg: String) : FactoryCreatedFuncA {
     private val message: String = msg
 
     /**
-     * A sample function that is created by a factory. This function appends a predefined message to the
-     * input string.
+     * A sample function that is created by a factory. This function appends a predefined message to the input string.
      *
      * @param raw The input string.
      * @return The input string appended with a message.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     override fun factoryCreatedFuncA(appFunctionContext: AppFunctionContext, raw: String): String {
         Log.i(TAG, "factoryCreatedFuncA")
         return raw + "-" + this.message
@@ -218,7 +216,7 @@ class FunctionWithoutSchemaDefinition {
      * @param raw The input string.
      * @return The input string appended with a static string.
      */
-    @AppFunction
+    @AppFunction(isDescribedByKdoc = true)
     fun functionWithoutSchemaDefinition(
         appFunctionContext: AppFunctionContext,
         raw: String,

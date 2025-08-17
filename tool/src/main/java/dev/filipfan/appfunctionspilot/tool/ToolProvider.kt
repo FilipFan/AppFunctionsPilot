@@ -9,7 +9,7 @@ import android.util.Log
 import androidx.appfunctions.AppFunctionManagerCompat
 import androidx.appfunctions.AppFunctionSearchSpec
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
-import androidx.appfunctions.metadata.AppFunctionMetadata
+import androidx.appfunctions.metadata.AppFunctionPackageMetadata
 import androidx.core.net.toUri
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonDeserializationContext
@@ -27,14 +27,14 @@ import java.lang.reflect.Type
 import java.util.concurrent.atomic.AtomicReference
 
 /**
- * This class queries AppFunctionMetadata via AppFunctionManagerCompat and provides the
- * results to the agent.
+ * Queries AppFunctionMetadata and provides the results to the agent.
  *
- * Note: This query operation should be executable directly on the agent side.
- * However, in my test environment, it was found that query results could only be
- * successfully obtained within its own application, hence this indirect method is adopted.
+ * <p>This class uses {@code AppFunctionManagerCompat} to perform the query.
  *
- * This class should be removed when the agent can directly obtain results via AppFunctionManagerCompat#observeAppFunctions.
+ * @implNote This query would ideally execute directly on the agent side. However, this indirect
+ * approach is necessary for devices the {@code enable_app_functions_schema_parser}
+ * feature flag is disabled. On such devices, results can only be obtained within the app',
+ * which falls back to a statically generated inventory.
  */
 class ToolProvider : ContentProvider() {
 
@@ -49,7 +49,7 @@ class ToolProvider : ContentProvider() {
         private const val KEY_METADATA_JSON = "metadata_json"
     }
 
-    private var metadataItems = AtomicReference<List<AppFunctionMetadata>>(emptyList())
+    private var metadataItems = AtomicReference<List<AppFunctionPackageMetadata>>(emptyList())
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val gson by lazy {
         GsonBuilder()
@@ -98,12 +98,12 @@ class ToolProvider : ContentProvider() {
         val packageName = context?.packageName ?: return
         val searchSpec = AppFunctionSearchSpec(packageNames = setOf(packageName))
 
-        appFunctionManager.observeAppFunctions(searchSpec)
-            .onEach { functions ->
-                metadataItems.set(functions)
+        appFunctionManager
+            .observeAppFunctions(searchSpec)
+            .onEach { metadataList ->
+                metadataItems.set(metadataList)
                 notifyChange()
-            }
-            .launchIn(scope)
+            }.launchIn(scope)
     }
 
     override fun delete(p0: Uri, p1: String?, p2: Array<out String>?): Int = throw UnsupportedOperationException()

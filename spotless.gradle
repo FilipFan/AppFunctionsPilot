@@ -9,7 +9,7 @@ spotless {
                 "ij_kotlin_allow_trailing_comma_on_call_site"      : "true"
         ])
         trimTrailingWhitespace()
-        indentWithSpaces()
+        leadingTabsToSpaces()
         endWithNewline()
     }
 
@@ -17,7 +17,7 @@ spotless {
         target("*.kts")
         ktlint()
         trimTrailingWhitespace()
-        indentWithSpaces()
+        leadingTabsToSpaces()
         endWithNewline()
     }
 }

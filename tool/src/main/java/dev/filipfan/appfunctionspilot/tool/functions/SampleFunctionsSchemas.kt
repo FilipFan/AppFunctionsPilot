@@ -3,6 +3,7 @@ package dev.filipfan.appfunctionspilot.tool.functions
 import androidx.appfunctions.AppFunctionContext
 import androidx.appfunctions.AppFunctionSchemaDefinition
 import androidx.appfunctions.AppFunctionSerializable
+import androidx.appfunctions.AppFunctionStringValueConstraint
 import java.time.LocalDateTime
 
 // Uses `AppFunctionSchemaDefinition` to define the schema stored in AppSearch when indexing App Functions.
@@ -30,15 +31,14 @@ interface FunctionNullable {
 interface ArgumentOptionalValues {
     /**
      * A data class demonstrating the use of optional and nullable properties for an App Function.
-     *
-     * @property optionalNullableInt An optional and nullable integer value.
-     * @property optionalNullableLong An optional and nullable long value with a default of 2.
-     * @property optionalNullableString An optional and nullable string value.
      */
-    @AppFunctionSerializable
+    @AppFunctionSerializable(isDescribedByKdoc = true)
     data class OptionalValues(
+        /** An optional and nullable integer value. */
         val optionalNullableInt: Int?,
+        /** An optional and nullable long value with a default of 2. */
         val optionalNullableLong: Long? = 2L,
+        /** An optional and nullable string value. */
         val optionalNullableString: String?,
     )
 
@@ -62,11 +62,12 @@ interface GetProductDetails {
 interface GetLocalDate {
     /**
      * A data class to hold a [LocalDateTime] object, which is serializable.
-     *
-     * @property localDateTime The local date and time.
      */
-    @AppFunctionSerializable
-    data class DateTime(val localDateTime: LocalDateTime) // `LocalDateTime` is serializable.
+    @AppFunctionSerializable(isDescribedByKdoc = true)
+    data class DateTime(
+        /** The local date and time. */
+        val localDateTime: LocalDateTime,
+    ) // `LocalDateTime` is serializable.
 
     fun getLocalDate(appFunctionContext: AppFunctionContext): DateTime
 }
@@ -75,39 +76,38 @@ interface GetLocalDate {
 interface GetWeather {
     /**
      * Represents the parameters for a weather query.
-     *
-     * @property location The city for which to get the weather.
-     * @property unit The temperature unit, which can be "celsius" or "fahrenheit".
-     * @property additional Any additional information for the query.
      */
-    @AppFunctionSerializable
+    @AppFunctionSerializable(isDescribedByKdoc = true)
     data class QueryWeatherParams(
+        /** The city for which to get the weather. */
         val location: String,
+        /** The temperature unit, which can be "celsius" or "fahrenheit". */
+        @AppFunctionStringValueConstraint(enumValues = ["celsius", "fahrenheit"])
         val unit: String,
+        /** Any additional information for the query. */
         val additional: AdditionalInformation,
     )
 
     /**
      * Represents additional information for a weather query.
-     *
-     * @property info A string containing extra details for the query.
      */
-    @AppFunctionSerializable
+    @AppFunctionSerializable(isDescribedByKdoc = true)
     data class AdditionalInformation(
+        /** A string containing extra details for the query. */
         val info: String,
     )
 
     /**
      * Holds the result of a weather query.
-     *
-     * @property temperature The temperature at the specified location.
-     * @property unit The unit of temperature, which will be either "celsius" or "fahrenheit".
-     * @property forecast A list of strings describing the weather forecast.
      */
-    @AppFunctionSerializable
+    @AppFunctionSerializable(isDescribedByKdoc = true)
     data class QueryWeatherResult(
+        /** The temperature at the specified location. */
         val temperature: String,
+        /** The unit of temperature, which will be either "celsius" or "fahrenheit". */
+        @AppFunctionStringValueConstraint(enumValues = ["celsius", "fahrenheit"])
         val unit: String,
+        /** A list of strings describing the weather forecast. */
         val forecast: List<String>,
     )
 
