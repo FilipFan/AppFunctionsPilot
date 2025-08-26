@@ -20,6 +20,10 @@ adb shell aflags list | grep "enable_app_functions_schema_parser"
 
 If this flag is not set to enabled, you will need to modify the `USE_CONTENT_PROVIDER` variable to true in the following file: `agent/src/main/java/dev/filipfan/appfunctionspilot/agent/MainViewModel.kt`.
 
+> [!NOTE]
+>
+> Using `USE_CONTENT_PROVIDER=true` serves as a workaround for devices that don't support dynamic parsing. However, this method may return incomplete data, such as functions with missing descriptions. This fallback is intended to ensure basic functionality and reflects a limitation of the `androidx.appfunctions` library.
+
 ### Tool App
 
 You can install the tool app directly using ADB:

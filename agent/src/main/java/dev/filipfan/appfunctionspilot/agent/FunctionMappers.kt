@@ -21,7 +21,7 @@ fun List<AppFunctionMetadata>.toFunctionDeclarations(): List<FunctionDeclaration
 
 private fun AppFunctionMetadata.toFunctionDeclaration(): FunctionDeclaration = FunctionDeclaration(
     name = this.id,
-    shortName = this.schema?.name ?: "Unknown",
+    shortName = this.id.substringAfterLast("#"),
     description = this.description,
     parameters = this.toParametersSchema(),
     response = this.response.valueType.toSchema(this.components),
