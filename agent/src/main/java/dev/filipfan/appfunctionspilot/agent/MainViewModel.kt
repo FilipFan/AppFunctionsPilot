@@ -131,7 +131,7 @@ class MainViewModel(
             ),
         )
 
-        "factoryCreatedFuncA" -> mapOf("raw" to "Ping")
+        "factoryCreatedFuncA", "functionWithoutSchemaDefinition" -> mapOf("raw" to "Ping")
         else -> emptyMap()
     }
 
