@@ -116,8 +116,8 @@ class MainViewModel(
         "argumentOptionalValues" -> mapOf(
             "v" to mapOf(
                 "optionalNullableInt" to 123,
-                "optionalNullableLong" to null,
-                "optionalNullableString" to "test",
+                "optionalNullableLong" to 9,
+                "optionalNullableString" to null,
             ),
         )
 
@@ -138,7 +138,7 @@ class MainViewModel(
     fun executeAppFunction(function: FunctionDeclaration) {
         // Test arguments for demonstration.
         Log.i(TAG, "Function invoked: ${function.toJsonString()}")
-        val arguments = getTestArgumentsForFunction(function.shortName)
+        val arguments = getTestArgumentsForFunction(function.shortName).mapValues { gson.toJsonTree(it.value) }
         viewModelScope.launch {
             val result =
                 functionExecutor.executeAppFunction(
