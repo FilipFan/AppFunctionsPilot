@@ -58,6 +58,24 @@ interface GetProductDetails {
     fun getProductDetails(appFunctionContext: AppFunctionContext, productId: String): String
 }
 
+@AppFunctionSchemaDefinition(name = "processProducts", version = 1, category = "sampleTool")
+interface ProcessProducts {
+    /**
+     * A data class representing product information.
+     */
+    @AppFunctionSerializable(isDescribedByKdoc = true)
+    data class ProductInfo(
+        /** The unique SKU (Stock Keeping Unit) for the product. */
+        val sku: String,
+        /** The number of items in stock. */
+        val stockQuantity: Int,
+        /** Whether the product is currently active. */
+        val isActive: Boolean,
+    )
+
+    fun processProducts(appFunctionContext: AppFunctionContext, products: List<ProductInfo>): Boolean
+}
+
 @AppFunctionSchemaDefinition(name = "getLocalDate", version = 1, category = "sampleTool")
 interface GetLocalDate {
     /**

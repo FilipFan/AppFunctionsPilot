@@ -10,7 +10,7 @@ lifecycleRuntimeCompose = "2.8.3"
 spotless = "7.1.0"
 kotlinxCoroutinesGuava = "1.10.2"
 gson = "2.10.1"
-appfunctions = "1.0.0-alpha05"
+appfunctions = "1.0.0-alpha06"
 ksp = "2.1.21-2.0.1"
 
 [libraries]

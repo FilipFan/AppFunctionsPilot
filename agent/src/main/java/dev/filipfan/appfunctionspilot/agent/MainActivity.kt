@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background,
                 ) {
                     MainScreen(
-                        functionItems = functionItems,
+                        functionItems = functionItems.toList(),
                         onFunctionClick = { item ->
                             Log.i(TAG, "Function calling: $item")
                             viewModel.executeAppFunction(item)

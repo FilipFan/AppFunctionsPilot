@@ -15,9 +15,7 @@ import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionStringTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionUnitTypeMetadata
 
-fun List<AppFunctionMetadata>.toFunctionDeclarations(): List<FunctionDeclaration> = this.map {
-    it.toFunctionDeclaration()
-}
+fun List<AppFunctionMetadata>.toFunctionDeclarations(): Map<FunctionDeclaration, AppFunctionMetadata> = this.associateBy { it.toFunctionDeclaration() }
 
 private fun AppFunctionMetadata.toFunctionDeclaration(): FunctionDeclaration = FunctionDeclaration(
     name = this.id,
