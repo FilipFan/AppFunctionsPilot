@@ -136,6 +136,26 @@ class GetProductDetailsImpl : GetProductDetails {
     }
 }
 
+class ProcessProductsImpl : ProcessProducts {
+    /**
+     * Processes a list of products.
+     *
+     * @param products A list of ProductInfo objects to be processed.
+     * @return A Boolean indicating whether the processing was considered successful.
+     * For this example, it simply returns true if the product list was not empty.
+     */
+    @AppFunction(isDescribedByKdoc = true)
+    override fun processProducts(
+        appFunctionContext: AppFunctionContext,
+        products: List<ProcessProducts.ProductInfo>,
+    ): Boolean {
+        Log.i(TAG, "processProducts called with ${products.size} products.")
+
+        val success = products.isNotEmpty()
+        return success
+    }
+}
+
 class GetLocalDateImpl : GetLocalDate {
     /**
      * Retrieves the current local date and time.

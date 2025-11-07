@@ -1,11 +1,17 @@
 package dev.filipfan.appfunctionspilot.agent
 
-import android.annotation.SuppressLint
 import android.util.Log
 import androidx.appfunctions.AppFunctionData
 import androidx.appfunctions.AppFunctionManagerCompat
 import androidx.appfunctions.ExecuteAppFunctionRequest
 import androidx.appfunctions.ExecuteAppFunctionResponse
+import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionComponentsMetadata
+import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionMetadata
+import androidx.appfunctions.metadata.AppFunctionObjectTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionParameterMetadata
+import androidx.appfunctions.metadata.AppFunctionReferenceTypeMetadata
 import com.google.gson.JsonArray
 import com.google.gson.JsonElement
 import com.google.gson.JsonNull
@@ -19,6 +25,7 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
 
     suspend fun executeAppFunction(
         targetPackageName: String,
+        appFunctionMetadata: AppFunctionMetadata,
         functionDeclaration: FunctionDeclaration,
         arguments: Map<String, JsonElement>,
     ): Result<JsonElement> = Result.runCatching {
@@ -26,7 +33,12 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
             throw IllegalStateException("Function (${functionDeclaration.name}) is disabled")
         }
 
-        val functionParameters = buildAppFunctionData(functionDeclaration.parameters, arguments)
+        val functionParameters = buildAppFunctionData(
+            appFunctionMetadata.parameters,
+            appFunctionMetadata.components,
+            functionDeclaration.parameters,
+            arguments,
+        )
         val request = ExecuteAppFunctionRequest(
             functionIdentifier = functionDeclaration.name,
             targetPackageName = targetPackageName,
@@ -43,34 +55,98 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
         }
     }
 
-    @SuppressLint("RestrictedApi")
     private fun buildAppFunctionData(
+        appFunctionParameterMetadataList: List<AppFunctionParameterMetadata>,
+        appFunctionComponentsMetadata: AppFunctionComponentsMetadata,
         schema: Schema?,
         arguments: Map<String, JsonElement>,
     ): AppFunctionData {
         if (schema == null || schema.properties.isEmpty()) return AppFunctionData.EMPTY
 
-        return AppFunctionData.Builder("").apply {
-            schema.properties.forEach { (paramName, paramSchema) ->
-                val jsonValue = arguments[paramName]
-                if (jsonValue != null && jsonValue !is JsonNull) {
-                    setValueOnBuilder(this, paramName, paramSchema, jsonValue)
-                } else if (schema.required.contains(paramName) && !paramSchema.nullable) {
-                    throw IllegalArgumentException("Missing required parameter: $paramName")
-                }
+        val appFunctionParameterMetadataMap =
+            appFunctionParameterMetadataList.associateBy { it.name }
+        val builder = AppFunctionData.Builder(
+            appFunctionParameterMetadataList,
+            appFunctionComponentsMetadata,
+        )
+        return populateBuilderFromSchema(
+            builder = builder,
+            components = appFunctionComponentsMetadata,
+            schema = schema,
+            arguments = arguments,
+            metadataProvider = { paramName ->
+                appFunctionParameterMetadataMap[paramName]?.dataType
+                    ?: throw IllegalStateException("Failed to find AppFunctionParameterMetadata for parameter $paramName")
+            },
+        )
+    }
+
+    private fun buildAppFunctionData(
+        appFunctionObjectTypeMetadata: AppFunctionObjectTypeMetadata,
+        appFunctionComponentsMetadata: AppFunctionComponentsMetadata,
+        schema: Schema,
+        arguments: Map<String, JsonElement>,
+    ): AppFunctionData {
+        val builder = AppFunctionData.Builder(
+            appFunctionObjectTypeMetadata,
+            appFunctionComponentsMetadata,
+        )
+
+        return populateBuilderFromSchema(
+            builder = builder,
+            components = appFunctionComponentsMetadata,
+            schema = schema,
+            arguments = arguments,
+            metadataProvider = { propName ->
+                appFunctionObjectTypeMetadata.properties[propName]
+                    ?: throw IllegalStateException("Failed to find AppFunctionDataTypeMetadata for property $propName")
+            },
+        )
+    }
+
+    private fun populateBuilderFromSchema(
+        builder: AppFunctionData.Builder,
+        components: AppFunctionComponentsMetadata,
+        schema: Schema,
+        arguments: Map<String, JsonElement>,
+        metadataProvider: (String) -> AppFunctionDataTypeMetadata,
+    ): AppFunctionData {
+        schema.properties.forEach { (paramName, paramSchema) ->
+            val jsonValue = arguments[paramName]
+
+            if (jsonValue != null && !jsonValue.isJsonNull) {
+                val paramMetadata = metadataProvider(paramName)
+                setValueOnBuilder(
+                    appFunctionDataTypeMetadata = paramMetadata,
+                    appFunctionComponentsMetadata = components,
+                    builder = builder,
+                    key = paramName,
+                    schema = paramSchema,
+                    value = jsonValue,
+                )
+            } else if (schema.required.contains(paramName) && !paramSchema.nullable) {
+                throw IllegalArgumentException("Missing required parameter: $paramName")
             }
-        }.build()
+        }
+        return builder.build()
     }
 
     private fun jsonObjectToMap(jsonObject: JsonObject): Map<String, JsonElement> = jsonObject.entrySet().associate { it.key to it.value }
 
     private fun setValueOnBuilder(
+        appFunctionDataTypeMetadata: AppFunctionDataTypeMetadata,
+        appFunctionComponentsMetadata: AppFunctionComponentsMetadata,
         builder: AppFunctionData.Builder,
         key: String,
         schema: Schema,
         value: JsonElement,
     ) {
         try {
+            if (appFunctionDataTypeMetadata is AppFunctionReferenceTypeMetadata) {
+                val resolvedType = resolveReference(appFunctionDataTypeMetadata, appFunctionComponentsMetadata)
+                setValueOnBuilder(resolvedType, appFunctionComponentsMetadata, builder, key, schema, value)
+                return
+            }
             when (schema.type) {
                 DataType.STRING -> builder.setString(key, value.asString)
                 DataType.INT -> builder.setInt(key, value.asInt)
@@ -79,13 +155,38 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
                 DataType.FLOAT -> builder.setFloat(key, value.asFloat)
                 DataType.DOUBLE -> builder.setDouble(key, value.asDouble)
                 DataType.OBJECT -> {
+                    val appFunctionObjectTypeMetadata =
+                        appFunctionDataTypeMetadata as? AppFunctionObjectTypeMetadata
+                            ?: throw IllegalArgumentException("Metadata mismatch: Schema is OBJECT but metadata is not, $appFunctionDataTypeMetadata")
+
                     val subObjectMap = jsonObjectToMap(value.asJsonObject)
+
                     builder.setAppFunctionData(
                         key,
-                        buildAppFunctionData(schema, subObjectMap),
+                        buildAppFunctionData(
+                            appFunctionObjectTypeMetadata,
+                            appFunctionComponentsMetadata,
+                            schema,
+                            subObjectMap,
+                        ),
                     )
                 }
-                DataType.ARRAY -> setArrayValueOnBuilder(builder, key, schema, value.asJsonArray)
+
+                DataType.ARRAY -> {
+                    val appFunctionArrayTypeMetadata =
+                        appFunctionDataTypeMetadata as? AppFunctionArrayTypeMetadata
+                            ?: throw IllegalStateException("Metadata mismatch: Schema is ARRAY but metadata is not, $appFunctionDataTypeMetadata")
+
+                    setArrayValueOnBuilder(
+                        appFunctionDataTypeMetadata = appFunctionArrayTypeMetadata.itemType,
+                        appFunctionComponentsMetadata = appFunctionComponentsMetadata,
+                        builder = builder,
+                        key = key,
+                        schema = schema,
+                        value = value.asJsonArray,
+                    )
+                }
+
                 else -> throw IllegalArgumentException("Unsupported data type: ${schema.type} for key '$key'")
             }
         } catch (e: Exception) {
@@ -97,6 +198,8 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
     }
 
     private fun setArrayValueOnBuilder(
+        appFunctionDataTypeMetadata: AppFunctionDataTypeMetadata,
+        appFunctionComponentsMetadata: AppFunctionComponentsMetadata,
         builder: AppFunctionData.Builder,
         key: String,
         schema: Schema,
@@ -104,21 +207,40 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
     ) {
         val itemsSchema = schema.items
             ?: throw IllegalStateException("Array schema for '$key' is missing 'items' definition.")
-
+        if (appFunctionDataTypeMetadata is AppFunctionReferenceTypeMetadata) {
+            val resolvedItemType = resolveReference(appFunctionDataTypeMetadata, appFunctionComponentsMetadata)
+            setArrayValueOnBuilder(resolvedItemType, appFunctionComponentsMetadata, builder, key, schema, value)
+            return
+        }
         when (itemsSchema.type) {
             DataType.STRING -> builder.setStringList(key, value.map { it.asString })
             DataType.INT -> builder.setIntArray(key, value.map { it.asInt }.toIntArray())
             DataType.LONG -> builder.setLongArray(key, value.map { it.asLong }.toLongArray())
             DataType.OBJECT -> {
+                val objectItemMetadata = appFunctionDataTypeMetadata as? AppFunctionObjectTypeMetadata
+                    ?: throw IllegalArgumentException("Metadata mismatch: Array item is OBJECT but metadata is not, $appFunctionDataTypeMetadata")
+
                 val objectList = value.map {
                     val subObjectMap = jsonObjectToMap(it.asJsonObject)
-                    buildAppFunctionData(itemsSchema, subObjectMap)
+                    buildAppFunctionData(
+                        objectItemMetadata,
+                        appFunctionComponentsMetadata,
+                        itemsSchema,
+                        subObjectMap,
+                    )
                 }
                 builder.setAppFunctionDataList(key, objectList)
             }
+
             else -> throw IllegalArgumentException("Unsupported array item type: ${itemsSchema.type} for key '$key'")
         }
     }
+
+    private fun resolveReference(
+        ref: AppFunctionReferenceTypeMetadata,
+        components: AppFunctionComponentsMetadata,
+    ): AppFunctionDataTypeMetadata = components.dataTypes[ref.referenceDataType]
+        ?: throw IllegalStateException("Reference to ${ref.referenceDataType} not found in components.")
 
     private fun parseSuccessResponse(
         responseSchema: Schema?,
@@ -164,6 +286,7 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
             DataType.DOUBLE -> JsonPrimitive(data.getDouble(key))
             DataType.OBJECT -> data.getAppFunctionData(key)
                 ?.let { convertDataObjectToMap(it, schema) } ?: JsonNull.INSTANCE
+
             DataType.ARRAY -> getArrayFromDataObject(data, key, schema) ?: JsonNull.INSTANCE
             else -> throw IllegalArgumentException("Unsupported item type for parsing: ${schema.type}")
         }
@@ -184,6 +307,7 @@ class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
             DataType.OBJECT -> data.getAppFunctionDataList(key)?.map {
                 convertDataObjectToMap(it, itemsSchema)
             }
+
             else -> throw IllegalArgumentException("Unsupported array item type for parsing: ${itemsSchema.type}")
         }
 

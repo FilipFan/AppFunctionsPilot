@@ -9,6 +9,7 @@ import android.util.Log
 import androidx.appfunctions.AppFunctionManagerCompat
 import androidx.appfunctions.AppFunctionSearchSpec
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
+import androidx.appfunctions.metadata.AppFunctionMetadata
 import androidx.appfunctions.metadata.AppFunctionPackageMetadata
 import androidx.core.net.toUri
 import androidx.lifecycle.AndroidViewModel
@@ -23,10 +24,13 @@ import com.google.gson.JsonSerializer
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.lang.reflect.Type
@@ -68,9 +72,14 @@ class MainViewModel(
             }
         }
 
-    private val _functionDeclarations = MutableStateFlow<List<FunctionDeclaration>>(emptyList())
-    val functionDeclarations: StateFlow<List<FunctionDeclaration>> =
-        _functionDeclarations.asStateFlow()
+    private val functionMetadataMap =
+        MutableStateFlow<Map<FunctionDeclaration, AppFunctionMetadata>>(emptyMap())
+    val functionDeclarations: StateFlow<Set<FunctionDeclaration>> =
+        functionMetadataMap.map { map -> map.keys }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000L),
+            initialValue = emptySet(),
+        )
 
     private val _functionResponse = MutableStateFlow("Latest function calling response")
     val functionResponse = _functionResponse.asStateFlow()
@@ -105,7 +114,7 @@ class MainViewModel(
                     processPackageMetadata(metadata)
                 } ?: run {
                     Log.w(TAG, "Unable to find functions for the target package '$TARGET_PACKAGE'")
-                    _functionDeclarations.value = emptyList()
+                    functionMetadataMap.value = emptyMap()
                 }
             }
             .launchIn(viewModelScope)
@@ -123,6 +132,25 @@ class MainViewModel(
 
         "add" -> mapOf("num1" to 10L, "num2" to 6L)
         "getProductDetails" -> mapOf("productId" to "p001")
+        "processProducts" -> mapOf(
+            "products" to listOf(
+                mapOf(
+                    "sku" to "SKU1001",
+                    "stockQuantity" to 50,
+                    "isActive" to true,
+                ),
+                mapOf(
+                    "sku" to "SKU1002",
+                    "stockQuantity" to 0,
+                    "isActive" to false,
+                ),
+                mapOf(
+                    "sku" to "SKU1003",
+                    "stockQuantity" to 120,
+                    "isActive" to true,
+                ),
+            ),
+        )
         "getWeather" -> mapOf(
             "param" to mapOf(
                 "location" to "Tokyo",
@@ -136,13 +164,17 @@ class MainViewModel(
     }
 
     fun executeAppFunction(function: FunctionDeclaration) {
+        val metadata = functionMetadataMap.value[function]
+            ?: throw IllegalStateException("Failed to find AppFunctionMetadata for ${function.shortName}")
         // Test arguments for demonstration.
         Log.i(TAG, "Function invoked: ${function.toJsonString()}")
-        val arguments = getTestArgumentsForFunction(function.shortName).mapValues { gson.toJsonTree(it.value) }
+        val arguments =
+            getTestArgumentsForFunction(function.shortName).mapValues { gson.toJsonTree(it.value) }
         viewModelScope.launch {
             val result =
                 functionExecutor.executeAppFunction(
                     targetPackageName = TARGET_PACKAGE,
+                    appFunctionMetadata = metadata,
                     functionDeclaration = function,
                     arguments = arguments,
                 )
@@ -168,7 +200,7 @@ class MainViewModel(
 
             if (metadataJson.isNullOrBlank()) {
                 Log.w(TAG, "Metadata JSON is null or empty.")
-                _functionDeclarations.value = emptyList()
+                functionMetadataMap.value = emptyMap()
                 return
             }
 
@@ -181,16 +213,16 @@ class MainViewModel(
                 processPackageMetadata(metadata)
             } ?: run {
                 Log.w(TAG, "Unable to find functions via the content provider.")
-                _functionDeclarations.value = emptyList()
+                functionMetadataMap.value = emptyMap()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Failed to call ToolProvider", e)
-            _functionDeclarations.value = emptyList()
+            functionMetadataMap.value = emptyMap()
         }
     }
 
     private fun processPackageMetadata(metadata: AppFunctionPackageMetadata) {
-        _functionDeclarations.value = metadata.appFunctions.toFunctionDeclarations()
+        functionMetadataMap.value = metadata.appFunctions.toFunctionDeclarations()
 
         viewModelScope.launch {
             val appMetadata = withContext(Dispatchers.IO) {
