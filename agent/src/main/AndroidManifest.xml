@@ -2,8 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Required permission for cross-app function execution.
-        <p>This permission is currently only granted to privileged system apps. -->
+    <!-- Required permission for cross-app function execution. -->
     <uses-permission android:name="android.permission.EXECUTE_APP_FUNCTIONS" />
 
     <!-- Allows the interaction with the target app. -->

@@ -34,9 +34,25 @@ adb install tool-debug.apk
 
 ### Agent App
 
-The agent app requires the `android.permission.EXECUTE_APP_FUNCTIONS` permission, which is a protected permission granted only to privileged system applications. To install the agent app, you'll need a rooted device or emulator.
+The agent app requires the `android.permission.EXECUTE_APP_FUNCTIONS` permission. On most devices running Android 16 ([android-16.0.0_r4](https://source.android.com/docs/setup/reference/build-numbers#source-code-tags-and-builds) or earlier), this is a protected permission granted only to privileged system applications.
 
-1. **Disable Permission Enforcement**: First, modify the `build.prop` file to disable privileged permission enforcement.
+1. **Verify Permission Protection Level**
+
+Before installation, check the protection level of this permission on your test device or emulator:
+
+```
+adb shell pm list permissions -f | grep -A 5 "EXECUTE_APP_FUNCTIONS"
+```
+
+- **If the level is `normal`:** You can install the app directly via `adb install agent-debug.apk`.
+
+- **If the level is `privileged`:** You must follow the root-access installation steps below.
+
+2. **Privileged Installation** 
+
+If the permission level is privileged, follow these steps to install the app as a system-privileged package. This process requires a rooted device or emulator with remount capabilities.
+
+**Step A: Disable Permission Enforcement** Modify the `build.prop` file to disable privileged permission enforcement.
 
 ```
 adb root
@@ -44,7 +60,7 @@ adb remount
 adb shell "sed -i 's/ro.control_privapp_permissions=enforce/ro.control_privapp_permissions=log/g' /vendor/build.prop"
 ```
 
-2. **Install as a Privileged App**: Push the APK to the privileged apps directory, such as `/system/priv-app`:
+**Step B: Install as a Privileged App** Push the APK to the privileged apps directory, such as `/system/priv-app`:
 
 ```
 adb push agent-debug.apk /system/priv-app
