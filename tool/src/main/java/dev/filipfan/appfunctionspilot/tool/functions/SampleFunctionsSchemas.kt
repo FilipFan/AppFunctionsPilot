@@ -32,7 +32,7 @@ interface ArgumentOptionalValues {
     /**
      * A data class demonstrating the use of optional and nullable properties for an App Function.
      */
-    @AppFunctionSerializable(isDescribedByKdoc = true)
+    @AppFunctionSerializable(isDescribedByKDoc = true)
     data class OptionalValues(
         /** An optional and nullable integer value. */
         val optionalNullableInt: Int?,
@@ -63,7 +63,7 @@ interface ProcessProducts {
     /**
      * A data class representing product information.
      */
-    @AppFunctionSerializable(isDescribedByKdoc = true)
+    @AppFunctionSerializable(isDescribedByKDoc = true)
     data class ProductInfo(
         /** The unique SKU (Stock Keeping Unit) for the product. */
         val sku: String,
@@ -81,7 +81,7 @@ interface GetLocalDate {
     /**
      * A data class to hold a [LocalDateTime] object, which is serializable.
      */
-    @AppFunctionSerializable(isDescribedByKdoc = true)
+    @AppFunctionSerializable(isDescribedByKDoc = true)
     data class DateTime(
         /** The local date and time. */
         val localDateTime: LocalDateTime,
@@ -95,7 +95,7 @@ interface GetWeather {
     /**
      * Represents the parameters for a weather query.
      */
-    @AppFunctionSerializable(isDescribedByKdoc = true)
+    @AppFunctionSerializable(isDescribedByKDoc = true)
     data class QueryWeatherParams(
         /** The city for which to get the weather. */
         val location: String,
@@ -109,7 +109,7 @@ interface GetWeather {
     /**
      * Represents additional information for a weather query.
      */
-    @AppFunctionSerializable(isDescribedByKdoc = true)
+    @AppFunctionSerializable(isDescribedByKDoc = true)
     data class AdditionalInformation(
         /** A string containing extra details for the query. */
         val info: String,
@@ -118,7 +118,7 @@ interface GetWeather {
     /**
      * Holds the result of a weather query.
      */
-    @AppFunctionSerializable(isDescribedByKdoc = true)
+    @AppFunctionSerializable(isDescribedByKDoc = true)
     data class QueryWeatherResult(
         /** The temperature at the specified location. */
         val temperature: String,

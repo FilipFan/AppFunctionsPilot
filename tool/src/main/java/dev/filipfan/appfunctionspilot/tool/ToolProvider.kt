@@ -6,7 +6,7 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import androidx.appfunctions.AppFunctionManagerCompat
+import androidx.appfunctions.AppFunctionManager
 import androidx.appfunctions.AppFunctionSearchSpec
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionPackageMetadata
@@ -61,7 +61,7 @@ class ToolProvider : ContentProvider() {
     }
 
     private val appFunctionManager by lazy {
-        context?.let { AppFunctionManagerCompat.getInstance(it) }
+        context?.let { AppFunctionManager.getInstance(it) }
             ?: throw IllegalStateException("Context not available")
     }
 

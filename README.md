@@ -22,7 +22,7 @@ If this flag is not set to enabled, you will need to modify the `USE_CONTENT_PRO
 
 > [!NOTE]
 >
-> Using `USE_CONTENT_PROVIDER=true` serves as a workaround for devices that don't support dynamic parsing. However, this method may return incomplete data, such as functions with missing descriptions. This fallback is intended to ensure basic functionality and reflects a limitation of the `androidx.appfunctions` library.
+> Using `USE_CONTENT_PROVIDER=true` serves as a workaround for devices that don't support dynamic parsing. However, this method may return incomplete data, such as functions with missing descriptions; starting from version [1.0.0-alpha08](https://developer.android.com/jetpack/androidx/releases/appfunctions#1.0.0-alpha08), this approach no longer supports function calling. This reflects a limitation of the `androidx.appfunctions` library.
 
 ### Tool App
 

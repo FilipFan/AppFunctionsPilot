@@ -2,7 +2,7 @@ package dev.filipfan.appfunctionspilot.agent
 
 import android.util.Log
 import androidx.appfunctions.AppFunctionData
-import androidx.appfunctions.AppFunctionManagerCompat
+import androidx.appfunctions.AppFunctionManager
 import androidx.appfunctions.ExecuteAppFunctionRequest
 import androidx.appfunctions.ExecuteAppFunctionResponse
 import androidx.appfunctions.metadata.AppFunctionArrayTypeMetadata
@@ -18,7 +18,7 @@ import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
 
-class GenericFunctionExecutor(private val manager: AppFunctionManagerCompat) {
+class GenericFunctionExecutor(private val manager: AppFunctionManager) {
     companion object {
         private const val TAG = "GenericFunctionExecutor"
     }

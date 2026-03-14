@@ -6,7 +6,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.appfunctions.AppFunctionManagerCompat
+import androidx.appfunctions.AppFunctionManager
 import androidx.appfunctions.AppFunctionSearchSpec
 import androidx.appfunctions.metadata.AppFunctionDataTypeMetadata
 import androidx.appfunctions.metadata.AppFunctionMetadata
@@ -49,11 +49,11 @@ class MainViewModel(
         private const val KEY_METADATA_JSON = "metadata_json"
     }
 
-    private val appFunctionManagerCompat: AppFunctionManagerCompat =
-        AppFunctionManagerCompat.getInstance(application)
+    private val appFunctionManager: AppFunctionManager =
+        AppFunctionManager.getInstance(application)
             ?: throw UnsupportedOperationException("App functions not supported on this device.")
 
-    private val functionExecutor = GenericFunctionExecutor(appFunctionManagerCompat)
+    private val functionExecutor = GenericFunctionExecutor(appFunctionManager)
 
     private val gson =
         GsonBuilder()
@@ -103,7 +103,7 @@ class MainViewModel(
 
     private fun startObservingWithAppFunctionManager() {
         val searchSpec = AppFunctionSearchSpec(packageNames = setOf(TARGET_PACKAGE))
-        appFunctionManagerCompat
+        appFunctionManager
             .observeAppFunctions(searchSpec)
             .onEach { packageList ->
                 packageList.firstOrNull()?.let { metadata ->
