@@ -75,5 +75,5 @@ adb reboot
 
 - [Android Jetpack Source](https://android.googlesource.com/platform/frameworks/support/)
 - [AppFunctionManager API reference](https://developer.android.com/reference/android/app/appfunctions/AppFunctionManager)
-- [ai-edge-apis](https://github.com/google-ai-edge/ai-edge-apis)
+- [ai-edge-apis](https://ai.google.dev/edge/mediapipe/solutions/genai/function_calling)
 - [exploring-appfunctions](https://github.com/jamiesanson/exploring-appfunctions)
