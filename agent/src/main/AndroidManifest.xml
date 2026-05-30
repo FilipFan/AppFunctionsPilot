@@ -10,6 +10,12 @@
         <package android:name="dev.filipfan.appfunctionspilot.tool" />
     </queries>
 
+    <!-- A handy trick to bypass permission restrictions via the shell during development. -->
+    <instrumentation
+        android:name=".ShellIdentityInstrumentation"
+        android:targetPackage="dev.filipfan.appfunctionspilot.agent"
+        android:label="Agent Shell Identity Instrumentation" />
+
     <application
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
