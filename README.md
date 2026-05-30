@@ -40,35 +40,50 @@ The agent app requires the `android.permission.EXECUTE_APP_FUNCTIONS` permission
 
 Before installation, check the protection level of this permission on your test device or emulator:
 
-```
+```bash
 adb shell pm list permissions -f | grep -A 5 "EXECUTE_APP_FUNCTIONS"
 ```
 
 - **If the level is `normal`:** You can install the app directly via `adb install agent-debug.apk`.
+- **If the level is `privileged`:** Choose one of the following two options to grant the permission.
 
-- **If the level is `privileged`:** You must follow the root-access installation steps below.
+2. **Granting Privileged Permission**
 
-2. **Privileged Installation** 
+#### Option A: Using Instrumentation
 
-If the permission level is privileged, follow these steps to install the app as a system-privileged package. This process requires a rooted device or emulator with remount capabilities.
+This method uses Android's Instrumentation mechanism to bypass permission restriction. It **does not require root access**.
 
-**Step A: Disable Permission Enforcement** Modify the `build.prop` file to disable privileged permission enforcement.
+1. Install the Agent app normally:
+   ```bash
+   adb install agent-debug.apk
+   ```
+2. Launch the app using the provided script:
+   ```bash
+   ./start_agent.sh
+   ```
+> [!IMPORTANT]
+> You must use this script to launch the app. Opening it from the launcher icon will not grant the required privileged permissions.
 
-```
+#### Option B: Privileged Installation
+
+This method installs the app as a system-privileged package. It requires a **rooted device** or emulator with remount capabilities.
+
+**Step 1: Disable Permission Enforcement**
+Modify the `build.prop` file to disable privileged permission enforcement:
+```bash
 adb root
 adb remount
 adb shell "sed -i 's/ro.control_privapp_permissions=enforce/ro.control_privapp_permissions=log/g' /vendor/build.prop"
 ```
 
-**Step B: Install as a Privileged App** Push the APK to the privileged apps directory, such as `/system/priv-app`:
-
-```
+**Step 2: Install as a Privileged App**
+Push the APK to the privileged apps directory:
+```bash
 adb push agent-debug.apk /system/priv-app
 adb reboot
 ```
 
 > [!NOTE]
->
 > After the initial privileged installation, you can update the agent app using a standard `adb install` command, provided its permissions in the manifest do not change.
 
 ## References
@@ -77,3 +92,4 @@ adb reboot
 - [AppFunctionManager API reference](https://developer.android.com/reference/android/app/appfunctions/AppFunctionManager)
 - [ai-edge-apis](https://ai.google.dev/edge/mediapipe/solutions/genai/function_calling)
 - [exploring-appfunctions](https://github.com/jamiesanson/exploring-appfunctions)
+- [AppFunctions Testing Agent](https://github.com/android/appfunctions/releases/tag/initial)
