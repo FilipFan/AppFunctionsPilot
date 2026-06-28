@@ -81,6 +81,8 @@ Push the APK to the privileged apps directory:
 ```bash
 adb push agent-debug.apk /system/priv-app
 adb reboot
+# Bypass AllowlistProviderService authentication via shell allowlist (Android 17 / API 37+).
+adb shell cmd allowlist add-package-multimap 2 ${PACKAGE_NAME}:51daf64ef450d70fc4e41d1356d0b0a703e322148bb4b71e117a6eaa92ebed59 "'*'"
 ```
 
 > [!NOTE]
