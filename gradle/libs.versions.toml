@@ -1,7 +1,7 @@
 [versions]
-agp = "8.11.0"
-kotlin = "2.1.21"
-coreKtx = "1.12.0"
+agp = "9.2.1"
+kotlin = "2.3.21"
+coreKtx = "1.18.0"
 appcompat = "1.6.1"
 material = "1.10.0"
 activityCompose = "1.8.0"
@@ -10,8 +10,8 @@ lifecycleRuntimeCompose = "2.8.3"
 spotless = "7.1.0"
 kotlinxCoroutinesGuava = "1.10.2"
 gson = "2.10.1"
-appfunctions = "1.0.0-alpha08"
-ksp = "2.1.21-2.0.1"
+appfunctions = "1.0.0-alpha09"
+ksp = "2.3.6"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -35,7 +35,6 @@ appfunctions-compiler = { group = "androidx.appfunctions", name = "appfunctions-
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 spotless = { id = "com.diffplug.gradle.spotless", version.ref = "spotless" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
